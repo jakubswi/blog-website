@@ -165,7 +165,6 @@ def show_post(post_id):
     return render_template("post.html", post=requested_post, current_user=current_user, form=comment_form)
 
 @app.route("/new-post", methods=["GET", "POST"])
-@admin_only
 def add_new_post():
     form = CreatePostForm()
     if form.validate_on_submit():
@@ -184,35 +183,37 @@ def add_new_post():
 
 
 
-@app.route("/edit-post/<int:post_id>", methods=["GET", "POST"])
-def edit_post(post_id):
-    post = db.get_or_404(BlogPost, post_id)
-    edit_form = CreatePostForm(
-        title=post.title,
-        subtitle=post.subtitle,
-        img_url=post.img_url,
-        author=post.author,
-        body=post.body
-    )
-    if edit_form.validate_on_submit():
-        post.title = edit_form.title.data
-        post.subtitle = edit_form.subtitle.data
-        post.img_url = edit_form.img_url.data
-        post.author = current_user
-        post.body = edit_form.body.data
+@app.route("/edit-post/<int:post_id>/<post_author_id>", methods=["GET", "POST"])
+def edit_post(post_id,post_author_id):
+    if int(post_author_id) == current_user.id or current_user==1:
+        post = db.get_or_404(BlogPost, post_id)
+        edit_form = CreatePostForm(
+            title=post.title,
+            subtitle=post.subtitle,
+            img_url=post.img_url,
+            author=post.author,
+            body=post.body
+        )
+        if edit_form.validate_on_submit():
+            post.title = edit_form.title.data
+            post.subtitle = edit_form.subtitle.data
+            post.img_url = edit_form.img_url.data
+            post.author = current_user
+            post.body = edit_form.body.data
+            db.session.commit()
+            return redirect(url_for("show_post", post_id=post.id))
+        return render_template("make-post.html", form=edit_form, is_edit=True, current_user=current_user)
+
+
+
+@app.route("/delete/<int:post_id>/<post_author_id>")
+def delete_post(post_id,post_author_id):
+    if  current_user.id == int(post_author_id) or current_user==1:
+        post_to_delete = db.get_or_404(BlogPost, post_id)
+        db.session.delete(post_to_delete)
         db.session.commit()
-        return redirect(url_for("show_post", post_id=post.id))
-    return render_template("make-post.html", form=edit_form, is_edit=True, current_user=current_user)
-
-
-
-@app.route("/delete/<int:post_id>")
-@admin_only
-def delete_post(post_id):
-    post_to_delete = db.get_or_404(BlogPost, post_id)
-    db.session.delete(post_to_delete)
-    db.session.commit()
-    return redirect(url_for('get_all_posts'))
+        return redirect(url_for('get_all_posts'))
+    return redirect(url_for("show_post", post_id=post_id))
 
 
 @app.route("/about")
