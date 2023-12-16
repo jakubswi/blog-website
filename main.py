@@ -12,13 +12,10 @@ from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 import os
 import smtplib
 
-
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('FLASK_KEY')
 ckeditor = CKEditor(app)
 Bootstrap5(app)
-
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -27,6 +24,7 @@ login_manager.init_app(app)
 @login_manager.user_loader
 def load_user(user_id):
     return db.get_or_404(User, user_id)
+
 
 gravatar = Gravatar(app,
                     size=100,
@@ -37,11 +35,9 @@ gravatar = Gravatar(app,
                     use_ssl=False,
                     base_url=None)
 
-
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI", "sqlite:///posts.db")
 db = SQLAlchemy()
 db.init_app(app)
-
 
 
 class BlogPost(db.Model):
@@ -56,6 +52,7 @@ class BlogPost(db.Model):
     img_url = db.Column(db.String(250), nullable=False)
     comments = relationship("Comment", back_populates="parent_post")
 
+
 class User(UserMixin, db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
@@ -64,6 +61,7 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(100))
     posts = relationship("BlogPost", back_populates="author")
     comments = relationship("Comment", back_populates="comment_author")
+
 
 class Comment(db.Model):
     __tablename__ = "comments"
@@ -78,6 +76,7 @@ class Comment(db.Model):
 with app.app_context():
     db.create_all()
 
+
 def admin_only(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -86,6 +85,7 @@ def admin_only(f):
         return f(*args, **kwargs)
 
     return decorated_function
+
 
 @app.route('/register', methods=["GET", "POST"])
 def register():
@@ -96,17 +96,8 @@ def register():
         if user:
             flash("You've already signed up with that email, log in instead!")
             return redirect(url_for('login'))
-
-        hash_and_salted_password = generate_password_hash(
-            form.password.data,
-            method='pbkdf2:sha256',
-            salt_length=8
-        )
-        new_user = User(
-            email=form.email.data,
-            name=form.name.data,
-            password=hash_and_salted_password,
-        )
+        hash_and_salted_password = generate_password_hash(form.password.data, method='pbkdf2:sha256', salt_length=8)
+        new_user = User(email=form.email.data, name=form.name.data, password=hash_and_salted_password)
         db.session.add(new_user)
         db.session.commit()
         login_user(new_user)
@@ -164,6 +155,7 @@ def show_post(post_id):
         db.session.commit()
     return render_template("post.html", post=requested_post, current_user=current_user, form=comment_form)
 
+
 @app.route("/new-post", methods=["GET", "POST"])
 @login_required
 def add_new_post():
@@ -183,11 +175,10 @@ def add_new_post():
     return render_template("make-post.html", form=form, current_user=current_user)
 
 
-
 @app.route("/edit-post/<int:post_id>/<post_author_id>", methods=["GET", "POST"])
 @login_required
-def edit_post(post_id,post_author_id):
-    if int(post_author_id) == current_user.id or current_user==1:
+def edit_post(post_id, post_author_id):
+    if int(post_author_id) == current_user.id or current_user == 1:
         post = db.get_or_404(BlogPost, post_id)
         edit_form = CreatePostForm(
             title=post.title,
@@ -207,11 +198,10 @@ def edit_post(post_id,post_author_id):
         return render_template("make-post.html", form=edit_form, is_edit=True, current_user=current_user)
 
 
-
 @app.route("/delete/<int:post_id>/<post_author_id>")
 @login_required
-def delete_post(post_id,post_author_id):
-    if  current_user.id == int(post_author_id) or current_user==1:
+def delete_post(post_id, post_author_id):
+    if current_user.id == int(post_author_id) or current_user == 1:
         post_to_delete = db.get_or_404(BlogPost, post_id)
         db.session.delete(post_to_delete)
         db.session.commit()
@@ -224,17 +214,17 @@ def about():
     return render_template("about.html", current_user=current_user)
 
 
-
 MAIL_ADDRESS = os.environ.get("EMAIL_KEY")
 MAIL_APP_PW = os.environ.get("PASSWORD_KEY")
+
 
 @app.route("/contact", methods=["GET", "POST"])
 def contact():
     if request.method == "POST":
         data = request.form
         send_email(data["name"], data["email"], data["phone"], data["message"])
-        return render_template("contact.html", msg_sent=True,current_user=current_user)
-    return render_template("contact.html", msg_sent=False,current_user=current_user)
+        return render_template("contact.html", msg_sent=True, current_user=current_user)
+    return render_template("contact.html", msg_sent=False, current_user=current_user)
 
 
 def send_email(name, email, phone, message):
@@ -242,7 +232,7 @@ def send_email(name, email, phone, message):
     with smtplib.SMTP("smtp.gmail.com") as connection:
         connection.starttls()
         connection.login(MAIL_ADDRESS, MAIL_APP_PW)
-        connection.sendmail( MAIL_ADDRESS,MAIL_ADDRESS, email_message)
+        connection.sendmail(MAIL_ADDRESS, MAIL_ADDRESS, email_message)
 
 
 if __name__ == "__main__":
