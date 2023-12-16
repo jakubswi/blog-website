@@ -157,8 +157,10 @@ def show_post(post_id):
 
 
 @app.route("/new-post", methods=["GET", "POST"])
-@login_required
 def add_new_post():
+    if not current_user.is_authenticated:
+        flash("You need to login or register to comment.")
+        return redirect(url_for("login"))
     form = CreatePostForm()
     if form.validate_on_submit():
         new_post = BlogPost(
@@ -176,7 +178,6 @@ def add_new_post():
 
 
 @app.route("/edit-post/<int:post_id>/<post_author_id>", methods=["GET", "POST"])
-@login_required
 def edit_post(post_id, post_author_id):
     if int(post_author_id) == current_user.id or current_user == 1:
         post = db.get_or_404(BlogPost, post_id)
@@ -196,6 +197,9 @@ def edit_post(post_id, post_author_id):
             db.session.commit()
             return redirect(url_for("show_post", post_id=post.id))
         return render_template("make-post.html", form=edit_form, is_edit=True, current_user=current_user)
+    else:
+        flash("You're not authorised.")
+        return redirect(url_for("get_all_posts"))
 
 
 @app.route("/delete/<int:post_id>/<post_author_id>")
