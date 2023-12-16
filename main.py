@@ -3,7 +3,7 @@ from flask import Flask, abort, render_template, redirect, url_for, flash, reque
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
 from flask_gravatar import Gravatar
-from flask_login import UserMixin, login_user, LoginManager, current_user, logout_user
+from flask_login import UserMixin, login_user, LoginManager, current_user, logout_user, login_required
 from flask_sqlalchemy import SQLAlchemy
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -165,6 +165,7 @@ def show_post(post_id):
     return render_template("post.html", post=requested_post, current_user=current_user, form=comment_form)
 
 @app.route("/new-post", methods=["GET", "POST"])
+@login_required
 def add_new_post():
     form = CreatePostForm()
     if form.validate_on_submit():
@@ -184,6 +185,7 @@ def add_new_post():
 
 
 @app.route("/edit-post/<int:post_id>/<post_author_id>", methods=["GET", "POST"])
+@login_required
 def edit_post(post_id,post_author_id):
     if int(post_author_id) == current_user.id or current_user==1:
         post = db.get_or_404(BlogPost, post_id)
@@ -207,6 +209,7 @@ def edit_post(post_id,post_author_id):
 
 
 @app.route("/delete/<int:post_id>/<post_author_id>")
+@login_required
 def delete_post(post_id,post_author_id):
     if  current_user.id == int(post_author_id) or current_user==1:
         post_to_delete = db.get_or_404(BlogPost, post_id)
